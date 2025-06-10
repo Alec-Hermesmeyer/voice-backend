@@ -187,17 +187,7 @@ public class VoiceInteractionController {
         }
     }
 
-    /**
-     * Health check for voice interaction service
-     */
-    @GetMapping("/health")
-    public ResponseEntity<HealthResponse> health() {
-        return ResponseEntity.ok(new HealthResponse(
-            true,
-            "Voice Interaction Service is running",
-            System.currentTimeMillis()
-        ));
-    }
+    // Health endpoint moved to separate HealthController to avoid dependency issues
 
     // Request/Response DTOs
 
