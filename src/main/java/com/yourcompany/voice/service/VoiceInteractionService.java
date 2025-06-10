@@ -5,6 +5,8 @@ import com.yourcompany.voice.service.RAGService.RAGResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.json.JSONObject;
 import org.json.JSONException;
 import okhttp3.*;
@@ -18,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
  * Provides complete voice-only interface for user interaction
  */
 @Service
+@Lazy
+@ConditionalOnProperty(name = "voice.service.enabled", havingValue = "true", matchIfMissing = true)
 public class VoiceInteractionService {
     
     private static final String OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";

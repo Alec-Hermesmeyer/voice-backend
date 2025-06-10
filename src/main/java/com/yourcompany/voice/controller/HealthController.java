@@ -3,23 +3,25 @@ package com.yourcompany.voice.controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.annotation.Lazy;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Simple Health Check Controller with no dependencies
+ * Simple Health Check Controller with no dependencies - guaranteed to work during startup
  */
 @RestController
+@Lazy(false)  // Always initialize this controller immediately
 public class HealthController {
 
     private final long startupTime = System.currentTimeMillis();
 
     @GetMapping("/api/voice-interaction/health")
     public ResponseEntity<Map<String, Object>> health() {
+        Map<String, Object> healthInfo = new HashMap<>();
         try {
-            Map<String, Object> healthInfo = new HashMap<>();
             healthInfo.put("status", "UP");
             healthInfo.put("service", "voice-backend");
             healthInfo.put("timestamp", System.currentTimeMillis());
@@ -39,13 +41,12 @@ public class HealthController {
             
             return ResponseEntity.ok(healthInfo);
         } catch (Exception e) {
-            Map<String, Object> errorInfo = new HashMap<>();
-            errorInfo.put("status", "DOWN");
-            errorInfo.put("service", "voice-backend");
-            errorInfo.put("timestamp", System.currentTimeMillis());
-            errorInfo.put("error", e.getMessage());
+            healthInfo.put("status", "DOWN");
+            healthInfo.put("service", "voice-backend");
+            healthInfo.put("timestamp", System.currentTimeMillis());
+            healthInfo.put("error", e.getMessage());
             
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorInfo);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(healthInfo);
         }
     }
 
@@ -61,6 +62,12 @@ public class HealthController {
         info.put("status", "running");
         info.put("timestamp", Instant.now().toString());
         info.put("message", "Voice Backend API is running");
+        info.put("port", System.getenv("PORT"));
         return ResponseEntity.ok(info);
+    }
+
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("pong");
     }
 } 

@@ -3,6 +3,8 @@ package com.yourcompany.voice.service;
 import com.yourcompany.voice.controller.WakeWordWebSocketHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -16,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * and tries to detect wake words.
  */
 @Service
+@Lazy
+@ConditionalOnProperty(name = "audio.service.enabled", havingValue = "true", matchIfMissing = false)
 public class SimpleWakeWordService {
 
     // Audio configuration
