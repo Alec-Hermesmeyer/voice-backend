@@ -89,7 +89,7 @@
    - Connect your GitHub repository
 
 2. **Create Web Service:**
-   - Build Command: `./mvnw clean package -DskipTests`
+   - Build Command: `mvn clean package -DskipTests`
    - Start Command: `java -jar target/voice-backend-0.0.1-SNAPSHOT.jar`
    - Environment: `Java`
 

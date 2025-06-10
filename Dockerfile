@@ -2,28 +2,24 @@ FROM openjdk:21-jdk-slim
 
 WORKDIR /app
 
-# Install system dependencies for audio processing
+# Install system dependencies including Maven
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
+    maven \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Maven wrapper and pom.xml
-COPY mvnw .
-COPY .mvn .mvn
+# Copy pom.xml first for better Docker layer caching
 COPY pom.xml .
 
-# Make Maven wrapper executable
-RUN chmod +x mvnw
-
 # Download dependencies
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copy source code
 COPY src src
 
 # Build the application
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Create directory for vector store
 RUN mkdir -p /app/vector-store
