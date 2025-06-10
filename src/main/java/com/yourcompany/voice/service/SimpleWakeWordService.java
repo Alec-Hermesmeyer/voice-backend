@@ -2,6 +2,7 @@ package com.yourcompany.voice.service;
 
 import com.yourcompany.voice.controller.WakeWordWebSocketHandler;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -40,6 +41,13 @@ public class SimpleWakeWordService {
     private TargetDataLine microphone;
     private Thread detectionThread;
     private long lastDetectionTime = 0;
+    
+    // Production environment flag
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+    
+    private boolean isProduction;
+    private boolean audioAvailable = false;
 
     // Wake word storage with confidence patterns
     private final Map<String, WakeWordPattern> wakeWordPatterns = new ConcurrentHashMap<>();
@@ -51,17 +59,26 @@ public class SimpleWakeWordService {
 
     @PostConstruct
     public void initialize() {
+        isProduction = "production".equals(activeProfile);
+        
         try {
             initializeDefaultWakeWords();
             audioHistory = new RingBuffer(SAMPLE_RATE * AUDIO_HISTORY_SECONDS);
             audioProcessor = new AudioProcessor();
 
-            startDetectionService();
-            System.out.println("✅ Wake word detection service initialized successfully");
+            // Only try to start detection if not in production or if audio is available
+            if (!isProduction) {
+                startDetectionService();
+                System.out.println("✅ Wake word detection service initialized successfully");
+            } else {
+                System.out.println("ℹ️ Production mode: Wake word detection service initialized without audio (audio hardware not available)");
+            }
 
         } catch (Exception e) {
             System.err.println("❌ Failed to initialize wake word service: " + e.getMessage());
-            e.printStackTrace();
+            if (!isProduction) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -147,6 +164,12 @@ public class SimpleWakeWordService {
     public void startDetectionService() {
         if (running.get()) {
             System.out.println("⚠️ Detection service already running");
+            return;
+        }
+
+        // Skip audio detection in production environments
+        if (isProduction) {
+            System.out.println("ℹ️ Production mode: Skipping audio detection (no audio hardware available)");
             return;
         }
 
@@ -337,6 +360,12 @@ public class SimpleWakeWordService {
      * Initialize microphone for audio capture
      */
     private void initializeMicrophone() {
+        if (isProduction) {
+            System.out.println("ℹ️ Production mode: Skipping microphone initialization");
+            microphone = null;
+            return;
+        }
+        
         try {
             AudioFormat format = new AudioFormat(SAMPLE_RATE, BITS_PER_SAMPLE, CHANNELS, true, false);
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
@@ -354,7 +383,15 @@ public class SimpleWakeWordService {
         } catch (LineUnavailableException e) {
             System.err.println("❌ Microphone initialization failed: " + e.getMessage());
             microphone = null;
-            WakeWordWebSocketHandler.broadcastError("Microphone unavailable: " + e.getMessage());
+            if (!isProduction) {
+                WakeWordWebSocketHandler.broadcastError("Microphone unavailable: " + e.getMessage());
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Unexpected error during microphone initialization: " + e.getMessage());
+            microphone = null;
+            if (!isProduction) {
+                e.printStackTrace();
+            }
         }
     }
 
