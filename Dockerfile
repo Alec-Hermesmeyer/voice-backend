@@ -32,4 +32,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/api/voice-interaction/health || exit 1
 
 # Run the application
-CMD ["java", "-jar", "target/voice-backend-0.0.1-SNAPSHOT.jar"] 
+CMD ["java", "-jar", "target/voice-detection-0.0.1-SNAPSHOT.jar"] 
