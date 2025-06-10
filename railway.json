@@ -5,9 +5,9 @@
     "buildCommand": "mvn clean package -DskipTests"
   },
   "deploy": {
-    "startCommand": "./startup.sh",
+    "startCommand": "java -Dspring.profiles.active=production -Dserver.port=$PORT -Djava.security.egd=file:/dev/./urandom -Xms256m -Xmx512m -jar target/voice-detection-1.0-SNAPSHOT.jar",
     "healthcheckPath": "/api/voice-interaction/health",
-    "healthcheckTimeout": 240,
+    "healthcheckTimeout": 300,
     "healthcheckInterval": 30,
     "restartPolicyType": "ON_FAILURE"
   }

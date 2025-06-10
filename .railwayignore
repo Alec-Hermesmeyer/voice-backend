@@ -1,0 +1,12 @@
+# Railway ignore file
+.git/
+.idea/
+.vscode/
+*.md
+fly.toml
+Dockerfile
+.dockerignore
+startup.sh
+examples/
+.DS_Store
+*.log 
