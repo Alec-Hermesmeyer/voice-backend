@@ -10,6 +10,7 @@ import okio.ByteString;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,7 +21,7 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
 
     private static final String OPENAI_WHISPER_API_URL = "https://api.openai.com/v1/audio/transcriptions";
 
-    private WebSocket deepgramWebSocket;
+    private final Map<WebSocketSession, WebSocket> sessionToDeepgramMap = new ConcurrentHashMap<>();
     private final OkHttpClient client = new OkHttpClient();
 
     @Value("${deepgram.api.key}")
@@ -37,6 +38,8 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
 
         String selectedSTT = (String) session.getAttributes().getOrDefault("stt_engine", "deepgram");
         session.getAttributes().put("selectedSTT", selectedSTT);
+        // Initialize sent flag for this session
+        session.getAttributes().put("transcriptionComplete", false);
 
         System.out.println("🎧 Selected STT Engine: " + selectedSTT);
 
@@ -46,10 +49,6 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
             connectToDeepgram(session);
         }
     }
-
-
-
-
 
     private String getSTTParameter(WebSocketSession session) {
         String query = session.getUri().getQuery();
@@ -75,16 +74,27 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
                 .addHeader("Authorization", "Token " + deepgramApiKey)
                 .build();
 
-        deepgramWebSocket = client.newWebSocket(request, new WebSocketListener() {
+        WebSocket deepgramWs = client.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
-                System.out.println("✅ Connected to Deepgram!");
+                System.out.println("✅ Connected to Deepgram for session: " + session.getId());
             }
 
             @Override
             public void onMessage(WebSocket webSocket, String text) {
                 System.out.println("📝 Deepgram Transcription: " + text);
-                sendToFrontend(text);
+
+                // Check if this is the final transcription
+                boolean isFinal = isFinalTranscription(text);
+
+                // Send to this specific frontend session
+                sendToFrontend(session, text, isFinal);
+
+                // If final, close Deepgram connection to prevent more messages
+                if (isFinal) {
+                    session.getAttributes().put("transcriptionComplete", true);
+                    webSocket.close(1000, "Transcription complete");
+                }
             }
 
             @Override
@@ -92,24 +102,41 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
                 System.err.println("❌ Deepgram WebSocket error: " + t.getMessage());
             }
         });
+
+        // Store the Deepgram WebSocket connection associated with this session
+        sessionToDeepgramMap.put(session, deepgramWs);
+    }
+
+    // Helper method to determine if this is a final transcription
+    private boolean isFinalTranscription(String json) {
+        // Parse JSON and check if it's a final result
+        // This will depend on Deepgram's response format
+        // Simplest check: look for a non-empty transcript with proper ending
+        return json.contains("\"is_final\":true") ||
+                (json.contains("transcript") &&
+                        (json.contains("\\.") || json.contains("\\?") || json.contains("\\!")));
     }
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws IOException {
         String selectedSTT = (String) session.getAttributes().get("selectedSTT");
+        Boolean transcriptionComplete = (Boolean) session.getAttributes().getOrDefault("transcriptionComplete", false);
+
+        // Skip processing if we already have a complete transcription
+        if (transcriptionComplete) {
+            return;
+        }
 
         if ("whisper".equalsIgnoreCase(selectedSTT)) {
             System.out.println("⚠️ Whisper selected but WebSocket streaming is not supported. Use REST.");
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Whisper does not support streaming."));
         } else {
+            WebSocket deepgramWebSocket = sessionToDeepgramMap.get(session);
             if (deepgramWebSocket != null) {
                 deepgramWebSocket.send(ByteString.of(message.getPayload().array()));
             }
         }
     }
-
-
-
 
     private void processWithWhisper(WebSocketSession session, BinaryMessage message) {
         System.out.println("🎤 Sending audio to OpenAI Whisper...");
@@ -138,10 +165,9 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
                     return;
                 }
 
-
                 String transcription = response.body().string();
                 System.out.println("📝 Whisper Transcription: " + transcription);
-                sendToFrontend(transcription);
+                sendToFrontend(session, transcription, true);
 
             } catch (Exception e) {
                 System.err.println("❌ Failed to process with Whisper: " + e.getMessage());
@@ -150,15 +176,18 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
         }).start();
     }
 
-    private void sendToFrontend(String transcription) {
-        for (WebSocketSession activeSession : activeSessions) {
-            if (activeSession.isOpen()) {
-                try {
-                    activeSession.sendMessage(new TextMessage(transcription));
-                    System.out.println("📤 Sent transcription to frontend: " + transcription);
-                } catch (Exception e) {
-                    System.err.println("❌ Failed to send transcription: " + e.getMessage());
-                }
+    private void sendToFrontend(WebSocketSession session, String transcription, boolean isFinal) {
+        if (session.isOpen()) {
+            try {
+                // Add a flag to indicate if this is a final transcription
+                String enrichedTranscription = isFinal
+                        ? transcription.replace("}", ", \"isFinal\": true}")
+                        : transcription.replace("}", ", \"isFinal\": false}");
+
+                session.sendMessage(new TextMessage(enrichedTranscription));
+                System.out.println("📤 Sent transcription to frontend: " + enrichedTranscription);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to send transcription: " + e.getMessage());
             }
         }
     }
@@ -167,6 +196,11 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         System.out.println("🔌 Client disconnected: " + session.getId());
         activeSessions.remove(session);
-        if (deepgramWebSocket != null) deepgramWebSocket.close(1000, "Client disconnected");
+
+        // Close the associated Deepgram WebSocket
+        WebSocket deepgramWebSocket = sessionToDeepgramMap.remove(session);
+        if (deepgramWebSocket != null) {
+            deepgramWebSocket.close(1000, "Client disconnected");
+        }
     }
 }
