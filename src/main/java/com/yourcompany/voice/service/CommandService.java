@@ -19,7 +19,8 @@ public class CommandService {
             "submit", "send", "execute", "go",
             "clear chat", "delete last",
             "enable autospeak", "disable autospeak",
-            "show help"
+            "show help",
+            "navigate", "go to", "open", "visit"
     );
 
     private static final Map<String, Runnable> COMMAND_ACTIONS = new HashMap<>();
@@ -45,6 +46,10 @@ public class CommandService {
         COMMAND_ACTIONS.put("send", () -> executeSubmit("default"));
         COMMAND_ACTIONS.put("execute", () -> executeSubmit("default"));
         COMMAND_ACTIONS.put("go", () -> executeSubmit("default"));
+        COMMAND_ACTIONS.put("navigate", this::handleNavigation);
+        COMMAND_ACTIONS.put("go to", this::handleNavigation);
+        COMMAND_ACTIONS.put("open", this::handleNavigation);
+        COMMAND_ACTIONS.put("visit", this::handleNavigation);
     }
 
     public Optional<String> detectCommand(String transcript) {
@@ -74,10 +79,21 @@ public class CommandService {
      * Process voice input with optional client ID for RAG context
      */
     public String processVoiceCommand(String voiceInput, String currentContext, String clientId) throws JSONException {
-        // First check for traditional commands
+        // First check for navigation commands (fast processing without LLM)
+        Optional<NavigationCommand> navCommand = parseNavigationCommand(voiceInput);
+        if (navCommand.isPresent()) {
+            return executeNavigationCommand(navCommand.get(), currentContext);
+        }
+        
+        // Then check for other traditional commands
         Optional<String> traditionalCommand = detectCommand(voiceInput);
         if (traditionalCommand.isPresent()) {
-            return executeCommand(traditionalCommand.get());
+            String command = traditionalCommand.get();
+            
+            // Skip navigation commands since they're handled above
+            if (!command.equals("navigate") && !command.equals("go to") && !command.equals("open") && !command.equals("visit")) {
+                return executeCommand(command);
+            }
         }
 
         // If client ID is provided, try RAG-enhanced processing first
@@ -263,5 +279,127 @@ public class CommandService {
     private void executeSubmit(String parameter) {
         System.out.println("🚀 Submitting with param: " + parameter);
         // Execute actual submission logic here
+    }
+
+    private void handleNavigation() {
+        System.out.println("🧭 Navigation command detected - will be processed by LLM pipeline");
+        // Navigation commands are handled by the LLM processing in processVoiceCommand()
+        // This method is called but the actual navigation logic happens in processWithStandardLLM()
+    }
+
+    /**
+     * Fast navigation command parsing without LLM
+     */
+    private Optional<NavigationCommand> parseNavigationCommand(String voiceInput) {
+        String cleaned = voiceInput.toLowerCase().trim();
+        
+        // Define navigation patterns
+        String[] patterns = {
+            "navigate to ", "go to ", "open ", "visit ", 
+            "take me to ", "show me ", "display "
+        };
+        
+        for (String pattern : patterns) {
+            if (cleaned.contains(pattern)) {
+                int startIndex = cleaned.indexOf(pattern) + pattern.length();
+                String target = cleaned.substring(startIndex).trim();
+                
+                // Clean up common words
+                target = target.replaceAll("\\bthe\\b|\\bpage\\b|\\bsection\\b", "").trim();
+                
+                String route = mapTargetToRoute(target);
+                if (route != null) {
+                    return Optional.of(new NavigationCommand(target, route));
+                }
+            }
+        }
+        
+        return Optional.empty();
+    }
+    
+    /**
+     * Map spoken target to actual route
+     */
+    private String mapTargetToRoute(String target) {
+        // Remove extra words and normalize
+        target = target.toLowerCase().trim();
+        
+        // Direct mappings
+        Map<String, String> routeMap = new HashMap<>();
+        routeMap.put("home", "/");
+        routeMap.put("dashboard", "/dashboard");
+        routeMap.put("profile", "/profile");
+        routeMap.put("settings", "/settings");
+        routeMap.put("contracts", "/contracts");
+        routeMap.put("insurance", "/insurance");
+        routeMap.put("records", "/records");
+        routeMap.put("fast rag", "/fast-rag");
+        routeMap.put("deep rag", "/deep-rag");
+        routeMap.put("fast-rag", "/fast-rag");
+        routeMap.put("deep-rag", "/deep-rag");
+        
+        // Check exact matches first
+        if (routeMap.containsKey(target)) {
+            return routeMap.get(target);
+        }
+        
+        // Check partial matches
+        for (Map.Entry<String, String> entry : routeMap.entrySet()) {
+            if (target.contains(entry.getKey()) || target.equals(entry.getKey().replace("-", " "))) {
+                return entry.getValue();
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Execute navigation command directly via WebSocket
+     */
+    private String executeNavigationCommand(NavigationCommand navCommand, String currentContext) {
+        try {
+            System.out.println("🚀 FAST NAVIGATION: " + navCommand.target + " -> " + navCommand.route);
+            
+            // Send navigation command via WebSocket
+            JSONObject parameters = new JSONObject();
+            parameters.put("url", navCommand.route);
+            
+            UIControlWebSocketHandler.broadcastUICommand(
+                "navigate",
+                navCommand.route,
+                parameters,
+                currentContext
+            );
+            
+            // Send voice feedback
+            String feedbackMessages[] = {
+                "Going to " + navCommand.target,
+                "Opening " + navCommand.target,
+                "Navigating to " + navCommand.target,
+                "Taking you to " + navCommand.target
+            };
+            
+            String feedback = feedbackMessages[new java.util.Random().nextInt(feedbackMessages.length)];
+            UIControlWebSocketHandler.broadcastVoiceFeedback(feedback, "system");
+            
+            return "FAST_NAVIGATION_EXECUTED";
+            
+        } catch (Exception e) {
+            System.err.println("❌ Navigation error: " + e.getMessage());
+            return "NAVIGATION_ERROR";
+        }
+    }
+    
+    /**
+     * Navigation command data class
+     */
+    private static class NavigationCommand {
+        final String target;
+        final String route;
+        
+        NavigationCommand(String target, String route) {
+            this.target = target;
+            this.route = route;
+        }
     }
 }

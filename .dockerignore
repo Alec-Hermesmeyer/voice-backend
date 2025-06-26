@@ -1,13 +1,65 @@
-target/
+# Docker ignore file
+# Git files
 .git/
 .gitignore
-README.md
-*.md
-.env
-.DS_Store
-node_modules/
-*.log
+
+# IDE files  
 .idea/
-*.iml
 .vscode/
-vector-store/ 
+*.iml
+*.swp
+*.swo
+
+# Build artifacts (built inside container)
+target/
+*.jar
+*.war
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Documentation
+*.md
+README.md
+DEPLOYMENT.md
+VOICE_SYSTEM_SUMMARY.md
+AZURE_DEPLOYMENT.md
+
+# Legacy deployment files
+fly.toml
+startup.sh
+Dockerfile.railway
+.railwayignore
+render.yaml
+railway.json
+nixpacks.toml
+
+# Test files
+src/test/
+
+# Node modules
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Vector store (created in container)
+vector-store/
+
+# Environment files
+.env
+.env.*
+
+# Examples/docs
+examples/ 

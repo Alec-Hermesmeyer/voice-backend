@@ -1,0 +1,25 @@
+[Unit]
+Description=Voice Backend Application
+After=network.target
+
+[Service]
+Type=simple
+User=voiceapp
+WorkingDirectory=/opt/voice-backend
+ExecStart=/usr/bin/java -Dspring.profiles.active=production -Dserver.port=8080 -jar voice-detection-1.0-SNAPSHOT.jar
+Restart=always
+RestartSec=10
+
+# Environment variables - Replace with your actual API keys
+Environment=OPENAI_API_KEY=SET_YOUR_OPENAI_API_KEY_HERE
+Environment=DEEPGRAM_API_KEY=SET_YOUR_DEEPGRAM_API_KEY_HERE
+Environment=ELEVENLABS_API_KEY=SET_YOUR_ELEVENLABS_API_KEY_HERE
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/voice-backend
+
+[Install]
+WantedBy=multi-user.target 

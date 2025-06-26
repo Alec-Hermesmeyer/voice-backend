@@ -41,3 +41,15 @@ build/
 user-data/
 vector-store/
 tts-cache/
+
+### Environment Variables ###
+.env
+.env.local
+.env.production
+.env.development
+
+### Sensitive Configuration ###
+# Don't ignore the application.properties files themselves, 
+# but never commit files with actual API keys
+**/application-local.properties
+**/application-secrets.properties

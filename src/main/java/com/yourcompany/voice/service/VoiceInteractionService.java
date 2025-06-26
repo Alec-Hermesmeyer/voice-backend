@@ -5,8 +5,6 @@ import com.yourcompany.voice.service.RAGService.RAGResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.json.JSONObject;
 import org.json.JSONException;
 import okhttp3.*;
@@ -20,8 +18,6 @@ import java.util.concurrent.CompletableFuture;
  * Provides complete voice-only interface for user interaction
  */
 @Service
-@Lazy
-@ConditionalOnProperty(name = "voice.service.enabled", havingValue = "true", matchIfMissing = true)
 public class VoiceInteractionService {
     
     private static final String OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
@@ -490,23 +486,10 @@ public class VoiceInteractionService {
                 return;
             }
             
-            // Generate TTS audio
-            byte[] audioData = generateTTS(text, session.getConfig().getVoiceModel());
-            
-            // Send audio to frontend
-            try {
-                JSONObject ttsResponse = new JSONObject()
-                    .put("type", "tts_response")
-                    .put("text", text)
-                    .put("audioData", Base64.getEncoder().encodeToString(audioData))
-                    .put("sessionId", sessionId);
-                
-                UIControlWebSocketHandler.broadcastVoiceFeedback(ttsResponse.toString(), sessionId);
-                session.setLastResponse(text);
-            } catch (JSONException e) {
-                System.err.println("❌ JSON Error in TTS response: " + e.getMessage());
-                UIControlWebSocketHandler.broadcastVoiceFeedback(text, sessionId);
-            }
+            // Skip TTS for now due to API key issue
+            System.out.println("🔊 TTS Disabled temporarily - sending text only");
+            UIControlWebSocketHandler.broadcastVoiceFeedback(text, sessionId);
+            session.setLastResponse(text);
             
         } catch (Exception e) {
             System.err.println("❌ TTS Error: " + e.getMessage());

@@ -28,17 +28,34 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // FIX: ensure wake-word handler is registered correctly
+        // Configure allowed origins for production/development
+        String[] allowedOrigins = {
+            "http://localhost:3000",           // Local development
+            "https://*.vercel.app",            // Vercel deployments
+            "https://*.azurewebsites.net",     // Azure deployments  
+            "https://your-domain.com",         // Your custom domain
+            "*"                                // Fallback (remove in production)
+        };
+
+        // Wake-word WebSocket with SockJS fallback for Azure
         registry.addHandler(wakeWordWebSocketHandler, "/ws/wake-word")
-                .setAllowedOrigins("*")
-                .addInterceptors(new HttpSessionHandshakeInterceptor());
+                .setAllowedOrigins(allowedOrigins)
+                .addInterceptors(new HttpSessionHandshakeInterceptor())
+                .withSockJS()  // SockJS fallback for Azure compatibility
+                .setHeartbeatTime(25000);  // Keep connection alive (Azure has 4min timeout)
 
+        // Audio WebSocket with SockJS fallback
         registry.addHandler(audioWebSocketHandler, "/ws/audio")
-                .setAllowedOrigins("*")
-                .addInterceptors(new QueryParamHandshakeInterceptor());
+                .setAllowedOrigins(allowedOrigins)
+                .addInterceptors(new QueryParamHandshakeInterceptor())
+                .withSockJS()
+                .setHeartbeatTime(25000);
 
+        // UI Control WebSocket with SockJS fallback
         registry.addHandler(uiControlWebSocketHandler, "/ws/ui-control")
-                .setAllowedOrigins("*")
-                .addInterceptors(new HttpSessionHandshakeInterceptor());
+                .setAllowedOrigins(allowedOrigins)
+                .addInterceptors(new HttpSessionHandshakeInterceptor())
+                .withSockJS()
+                .setHeartbeatTime(25000);
     }
 }

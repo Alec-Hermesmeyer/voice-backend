@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.json.JSONObject;
 import org.json.JSONException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/voice")
@@ -20,16 +21,52 @@ public class VoiceCommandController {
     private UIControlService uiControlService;
 
     /**
+     * Simple test endpoint for navigation commands
+     */
+    @PostMapping("/test-navigate")
+    public ResponseEntity<String> testNavigate(@RequestBody Map<String, String> request) {
+        try {
+            String command = request.get("command");
+            String target = request.get("target");
+            
+            System.out.println("🧭 TEST NAVIGATION - Command: " + command + ", Target: " + target);
+            
+            // Send navigation command directly via WebSocket
+            UIControlWebSocketHandler.broadcastUICommand(
+                "navigate",
+                target != null ? target : "/",
+                new org.json.JSONObject(),
+                "test"
+            );
+            
+            UIControlWebSocketHandler.broadcastVoiceFeedback("Navigating to " + target, "system");
+            
+            return ResponseEntity.ok("Navigation command sent");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Test navigation error: " + e.getMessage());
+            return ResponseEntity.ok("Error: " + e.getMessage());
+        }
+    }
+
+    /**
      * Process a voice command from the frontend
      */
     @PostMapping("/command")
     public ResponseEntity<CommandResponse> processVoiceCommand(@RequestBody VoiceCommandRequest request) {
         try {
+            System.out.println("🎤 RECEIVED VOICE COMMAND:");
+            System.out.println("   Transcript: " + request.getTranscript());
+            System.out.println("   Context: " + request.getCurrentContext());
+            System.out.println("   Client: " + request.getClientId());
+            
             String result = commandService.processVoiceCommand(
                 request.getTranscript(), 
                 request.getCurrentContext(),
                 request.getClientId()
             );
+            
+            System.out.println("   Result: " + result);
             
             return ResponseEntity.ok(new CommandResponse(
                 true,

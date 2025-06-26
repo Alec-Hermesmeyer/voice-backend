@@ -425,4 +425,13 @@ public class UIControlService {
         public String getContext() { return context; }
         public String getErrorMessage() { return errorMessage; }
     }
+    
+    /**
+     * Process UI command from voice response
+     */
+    public void processUICommand(String response, String currentContext, String clientId) {
+        // This method can be implemented to extract and execute UI commands
+        // For now, it's a placeholder to fix compilation
+        System.out.println("Processing UI command: " + response + " in context: " + currentContext);
+    }
 } 

@@ -8,8 +8,8 @@ import java.io.IOException;
 @Service
 public class DeepgramService {
 
-    private static final String DEEPGRAM_API_URL =
-            "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&model=nova&smart_format=true";
+    private static final String DEEPGRAM_API_URL = 
+            "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true";
 
     private final OkHttpClient httpClient = new OkHttpClient();
 
@@ -17,10 +17,13 @@ public class DeepgramService {
     private String deepgramApiKey;
 
     public String transcribe(byte[] audioData) throws IOException {
+        RequestBody requestBody = RequestBody.create(audioData, MediaType.parse("audio/wav"));
+        
         Request request = new Request.Builder()
                 .url(DEEPGRAM_API_URL)
                 .header("Authorization", "Token " + deepgramApiKey)
-                .post(RequestBody.create(audioData, MediaType.parse("audio/wav")))
+                .header("Content-Type", "audio/wav")
+                .post(requestBody)
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {

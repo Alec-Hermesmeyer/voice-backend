@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: voice-backend
+    env: java
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -Dspring.profiles.active=production -Dserver.port=$PORT -jar target/voice-detection-1.0-SNAPSHOT.jar
+    plan: free
+    envVars:
+      - key: OPENAI_API_KEY
+        value: SET_YOUR_OPENAI_API_KEY_HERE
+      - key: DEEPGRAM_API_KEY
+        value: SET_YOUR_DEEPGRAM_API_KEY_HERE
+      - key: ELEVENLABS_API_KEY
+        value: SET_YOUR_ELEVENLABS_API_KEY_HERE
+    healthCheckPath: /health 

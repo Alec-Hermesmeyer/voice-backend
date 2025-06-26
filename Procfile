@@ -1,0 +1,1 @@
+web: java -Dspring.profiles.active=production -Dserver.port=$PORT -jar target/voice-detection-1.0-SNAPSHOT.jar 

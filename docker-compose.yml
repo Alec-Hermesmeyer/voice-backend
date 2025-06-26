@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  voice-backend:
+    build: .
+    container_name: voice-backend-container
+    ports:
+      - "8080:8080"  # Map to same port for consistency
+    environment:
+      # Use dev profile for local testing
+      - SPRING_PROFILES_ACTIVE=dev
+      # Add your API keys for local testing (or use .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY} 
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      # JVM options for development
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC
+    volumes:
+      # Mount vector store for persistence
+      - ./vector-store:/app/vector-store
+      # Mount logs for debugging
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/voice-interaction/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - voice-network
+
+  # Production-like testing
+  voice-backend-prod:
+    build: .
+    container_name: voice-backend-prod
+    ports:
+      - "8081:8080"  # Different port for prod testing
+    environment:
+      # Use prod profile to test production configuration
+      - SPRING_PROFILES_ACTIVE=prod
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      # Production JVM settings
+      - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+    volumes:
+      - ./vector-store-prod:/app/vector-store
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/voice-interaction/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - voice-network
+    profiles:
+      - prod-test  # Only run when specifically requested
+
+networks:
+  voice-network:
+    driver: bridge
+
+volumes:
+  vector-store:
+  vector-store-prod: 
