@@ -53,3 +53,10 @@ tts-cache/
 # but never commit files with actual API keys
 **/application-local.properties
 **/application-secrets.properties
+
+### Docker Images ###
+# Never commit large Docker image files
+*.tar
+*.tar.gz
+*-docker-image.tar
+docker-image-*.tar
