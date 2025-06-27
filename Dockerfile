@@ -49,5 +49,5 @@ ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:${PORT:-8080}/api/voice-interaction/health || exit 1
 
-# Start the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"] 
+# Start the application with debug output
+ENTRYPOINT ["sh", "-c", "echo 'Starting with profile:' $SPRING_PROFILES_ACTIVE && echo 'Java opts:' $JAVA_OPTS && echo 'Port:' $PORT && java $JAVA_OPTS -jar app.jar"] 
