@@ -28,14 +28,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // Configure allowed origins for production/development
-        String[] allowedOrigins = {
-            "http://localhost:3000",           // Local development
-            "https://*.vercel.app",            // Vercel deployments
-            "https://*.azurewebsites.net",     // Azure deployments  
-            "https://your-domain.com",         // Your custom domain
-            "*"                                // Fallback (remove in production)
-        };
+        // Allow all origins for easy deployment and testing
+        String[] allowedOrigins = { "*" };
 
         // Wake-word WebSocket with SockJS fallback for Azure
         registry.addHandler(wakeWordWebSocketHandler, "/ws/wake-word")
