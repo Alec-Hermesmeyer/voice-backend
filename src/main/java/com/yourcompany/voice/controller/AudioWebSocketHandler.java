@@ -4,7 +4,7 @@ import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
-import org.springframework.web.socket.handler.BinaryWebSocketHandler;
+import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import okio.ByteString;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class AudioWebSocketHandler extends BinaryWebSocketHandler {
+public class AudioWebSocketHandler extends AbstractWebSocketHandler {
     private static final String DEEPGRAM_WS_URL =
             "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&model=nova&smart_format=true&diarize=true";
 
@@ -123,6 +123,20 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
         return json.contains("\"is_final\":true") ||
                 (json.contains("transcript") &&
                         (json.contains("\\.") || json.contains("\\?") || json.contains("\\!")));
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
+        // Handle text messages (control messages, configuration, etc.)
+        String payload = message.getPayload();
+        System.out.println("📝 Received text message: " + payload);
+        
+        // For now, just acknowledge receipt - you can add control logic here later
+        try {
+            session.sendMessage(new TextMessage("{\"status\":\"received\",\"message\":\"" + payload + "\"}"));
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send text response: " + e.getMessage());
+        }
     }
 
     @Override
