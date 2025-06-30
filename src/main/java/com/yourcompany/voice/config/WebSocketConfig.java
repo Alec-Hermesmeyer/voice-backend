@@ -44,6 +44,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .addInterceptors(new QueryParamHandshakeInterceptor())
                 .withSockJS()
                 .setHeartbeatTime(25000);
+                
+        // Also add a native WebSocket endpoint for audio (without SockJS)
+        registry.addHandler(audioWebSocketHandler, "/ws/audio-native")
+                .setAllowedOriginPatterns(allowedOriginPatterns)
+                .addInterceptors(new QueryParamHandshakeInterceptor());
 
         // UI Control WebSocket with SockJS fallback
         registry.addHandler(uiControlWebSocketHandler, "/ws/ui-control")
