@@ -28,29 +28,26 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // Allow all origins for easy deployment and testing
-        String[] allowedOrigins = { "*" };
+        // Use allowedOriginPatterns instead of allowedOrigins to avoid credentials conflict
+        String[] allowedOriginPatterns = { "*" };
 
         // Wake-word WebSocket with SockJS fallback for Azure
         registry.addHandler(wakeWordWebSocketHandler, "/ws/wake-word")
-                .setAllowedOrigins(allowedOrigins)
-                .setAllowCredentials(false)
+                .setAllowedOriginPatterns(allowedOriginPatterns)
                 .addInterceptors(new HttpSessionHandshakeInterceptor())
                 .withSockJS()  // SockJS fallback for Azure compatibility
                 .setHeartbeatTime(25000);  // Keep connection alive (Azure has 4min timeout)
 
         // Audio WebSocket with SockJS fallback
         registry.addHandler(audioWebSocketHandler, "/ws/audio")
-                .setAllowedOrigins(allowedOrigins)
-                .setAllowCredentials(false)
+                .setAllowedOriginPatterns(allowedOriginPatterns)
                 .addInterceptors(new QueryParamHandshakeInterceptor())
                 .withSockJS()
                 .setHeartbeatTime(25000);
 
         // UI Control WebSocket with SockJS fallback
         registry.addHandler(uiControlWebSocketHandler, "/ws/ui-control")
-                .setAllowedOrigins(allowedOrigins)
-                .setAllowCredentials(false)
+                .setAllowedOriginPatterns(allowedOriginPatterns)
                 .addInterceptors(new HttpSessionHandshakeInterceptor())
                 .withSockJS()
                 .setHeartbeatTime(25000);
