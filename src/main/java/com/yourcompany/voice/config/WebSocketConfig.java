@@ -34,22 +34,25 @@ public class WebSocketConfig implements WebSocketConfigurer {
         // Wake-word WebSocket with SockJS fallback for Azure
         registry.addHandler(wakeWordWebSocketHandler, "/ws/wake-word")
                 .setAllowedOrigins(allowedOrigins)
+                .setAllowCredentials(false)
                 .addInterceptors(new HttpSessionHandshakeInterceptor())
-                .withSockJS().setAllowCredentials(false)  // SockJS fallback for Azure compatibility
+                .withSockJS()  // SockJS fallback for Azure compatibility
                 .setHeartbeatTime(25000);  // Keep connection alive (Azure has 4min timeout)
 
         // Audio WebSocket with SockJS fallback
         registry.addHandler(audioWebSocketHandler, "/ws/audio")
                 .setAllowedOrigins(allowedOrigins)
+                .setAllowCredentials(false)
                 .addInterceptors(new QueryParamHandshakeInterceptor())
-                .withSockJS().setAllowCredentials(false)
+                .withSockJS()
                 .setHeartbeatTime(25000);
 
         // UI Control WebSocket with SockJS fallback
         registry.addHandler(uiControlWebSocketHandler, "/ws/ui-control")
                 .setAllowedOrigins(allowedOrigins)
+                .setAllowCredentials(false)
                 .addInterceptors(new HttpSessionHandshakeInterceptor())
-                .withSockJS().setAllowCredentials(false)
+                .withSockJS()
                 .setHeartbeatTime(25000);
     }
 }
