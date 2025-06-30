@@ -34,19 +34,27 @@ public class AudioWebSocketHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        activeSessions.add(session);
+        try {
+            activeSessions.add(session);
 
-        String selectedSTT = (String) session.getAttributes().getOrDefault("stt_engine", "deepgram");
-        session.getAttributes().put("selectedSTT", selectedSTT);
-        // Initialize sent flag for this session
-        session.getAttributes().put("transcriptionComplete", false);
+            String selectedSTT = (String) session.getAttributes().getOrDefault("stt_engine", "deepgram");
+            session.getAttributes().put("selectedSTT", selectedSTT);
+            // Initialize sent flag for this session
+            session.getAttributes().put("transcriptionComplete", false);
 
-        System.out.println("🎧 Selected STT Engine: " + selectedSTT);
+            System.out.println("🎧 Selected STT Engine: " + selectedSTT);
+            System.out.println("🔧 API Keys - Deepgram: " + (deepgramApiKey != null && !deepgramApiKey.contains("MISSING") ? "SET" : "MISSING"));
+            System.out.println("🔧 API Keys - OpenAI: " + (openAiApiKey != null && !openAiApiKey.contains("MISSING") ? "SET" : "MISSING"));
 
-        if ("whisper".equalsIgnoreCase(selectedSTT)) {
-            System.out.println("🗣️ Using Whisper for STT");
-        } else {
-            connectToDeepgram(session);
+            if ("whisper".equalsIgnoreCase(selectedSTT)) {
+                System.out.println("🗣️ Using Whisper for STT");
+            } else {
+                connectToDeepgram(session);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error in afterConnectionEstablished: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
